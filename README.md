@@ -1,2 +1,2 @@
-# disco
+# Disco
 Discover something new.

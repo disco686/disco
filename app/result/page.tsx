@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { toPng } from "html-to-image";
 
 import { archetypes } from "@/data/archetypes";
@@ -28,16 +28,18 @@ const dimensionLabels = {
 export default function ResultPage() {
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const [scores, setScores] = useState<DimensionScores | null>(null);
-  const [archetype, setArchetype] = useState<Archetype | null>(null);
-  const [confidence, setConfidence] = useState<number>(0);
+  const savedAnswers = useSyncExternalStore(
+    () => () => {},
+    () => localStorage.getItem("worksona_answers"),
+    () => null
+  );
 
-  useEffect(() => {
-    const saved = localStorage.getItem("worksona_answers");
+  let scores: DimensionScores | null = null;
+  let archetype: Archetype | null = null;
+  let confidence = 0;
 
-    if (!saved) return;
-
-    const answerObject = JSON.parse(saved) as Record<string, number>;
+  if (savedAnswers) {
+    const answerObject = JSON.parse(savedAnswers) as Record<string, number>;
 
     const answers: Answer[] = Object.entries(answerObject).map(
       ([questionId, value]) => ({
@@ -46,14 +48,10 @@ export default function ResultPage() {
       })
     );
 
-    const nextScores = calculateScores(questions, answers);
-    const nextArchetype = findBestArchetype(nextScores, archetypes);
-    const nextConfidence = calculateConfidence(answers);
-
-    setScores(nextScores);
-    setArchetype(nextArchetype);
-    setConfidence(nextConfidence);
-  }, []);
+    scores = calculateScores(questions, answers);
+    archetype = findBestArchetype(scores, archetypes);
+    confidence = calculateConfidence(answers);
+  }
 
   async function handleDownload() {
     if (!cardRef.current) return;
@@ -64,7 +62,7 @@ export default function ResultPage() {
     });
 
     const link = document.createElement("a");
-    link.download = "worksona-result.png";
+    link.download = "obti-result.png";
     link.href = dataUrl;
     link.click();
   }
@@ -84,6 +82,7 @@ export default function ResultPage() {
       </main>
     );
   }
+
     return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50 px-6 py-12">
         <section className="mx-auto max-w-3xl">
